@@ -1,0 +1,77 @@
+#!/usr/bin/env python
+
+import sys
+import time
+import paramiko 
+import os
+import cmd
+import datetime
+
+###set date and time
+now = datetime.datetime.now()
+
+###authentication
+USER = 'user'
+PASSWORD = 'passpass'
+secret = 'pass'
+
+if input("are you sure? (y/n)") != "y":
+      exit()
+
+###start FOR ...in 
+f = open(r'THIS IS THE FILE WITH THE LIST OF SWITCH IPS')
+for ip in f.readlines():
+	ip = ip.strip()
+	###prefix files for backup
+	filename_prefix =r'FILE PATH FOR BACKUPS, don't need if not backing up' + ip
+	
+	###session start
+	client = paramiko.SSHClient()
+	client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+	client.connect(ip, username=USER, password=PASSWORD)
+	print ("Running backup on: ", ip)
+        ###ssh shell
+	chan = client.invoke_shell()
+	time.sleep(3)
+  
+	###enter enable secret
+	chan.send('en\n')
+	chan.send(secret +'\n')
+	time.sleep(3)
+  
+	###terminal lenght for no paging 
+	chan.send('term len 0\n')
+	time.sleep(3)
+  
+	###show config and write output
+	chan.send('sh run\n')
+	time.sleep(30)
+	output = chan.recv(99999)
+  
+   #This allows for user input such as: g1/0/1, g1/0/3 etc...
+   #You can use this format to input commands etc.
+   #print("Enter port ranges here:")
+   #portInput = input()
+   #remote_connection.send('interface range ' + portInput + '\n')
+   #time.sleep(3)
+
+	###show output config and write file with prefix, date and time
+	print (output)
+  
+  #DONT NEED TO FORMAT FILES IF NOT SAVING
+	#filename = "%s_%.2i-%.2i-%i_%.2i-%.2i-%.2i" % (filename_prefix,now.day,now.month,now.year,now.hour,now.minute,now.second)
+	filename = "%s_%.2i%.2i%i_%.2i%.2i%.2i" % (filename_prefix,now.year,now.month,now.day,now.hour,now.minute,now.second)
+	ff = open(filename, 'a')
+  
+	#ff.write(output)
+	ff.write(output.decode(encoding='UTF-8') )
+	ff.close()
+  
+	###close ssh session
+	#Format = output.decode(encoding='UTF-8')
+	#print(Format)
+  
+	client.close() 
+	
+	print (ip, 'Backup Complete')
+	f.close()
